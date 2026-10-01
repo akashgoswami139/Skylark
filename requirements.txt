@@ -1,7 +1,8 @@
 fastapi
 uvicorn
 python-dotenv
+langchain
 langchain-core
 langchain-groq
 requests
-tavily
+tavily-python
