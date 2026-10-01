@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skylark</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+:root{--fg:#10213f;--muted:#4d6288;--card:rgba(255,255,255,.58);--line:rgba(16,33,63,.14);--ac:#ff9f43;--acfg:#3b1d00;--cloud:rgba(255,255,255,.85)}
+body[data-mode=city]{--fg:#f3efff;--muted:#b8b2e6;--card:rgba(22,20,64,.55);--line:rgba(255,255,255,.18);--ac:#ffb4a2;--acfg:#3a1230;--cloud:rgba(176,166,255,.16)}
+body{min-height:100vh;display:grid;place-items:center;padding:20px;font-family:"DM Sans",sans-serif;color:var(--fg);transition:color .8s}
+.sky{position:fixed;inset:0;z-index:-3;transition:opacity 1.4s}
+.day{background:linear-gradient(#4fb0ff,#bfe3ff 60%,#fff1d6)}
+.night{background:linear-gradient(#0b0e2e,#262063 55%,#8b4d8e);opacity:0}
+body[data-mode=city] .night{opacity:1}
+.orb{position:fixed;z-index:-2;border-radius:50%;transition:transform 1.6s cubic-bezier(.65,0,.25,1),opacity 1.2s}
+.sun{width:150px;height:150px;top:9vh;right:12vw;background:radial-gradient(#fff8d6 30%,#ffc861 60%,transparent 72%);box-shadow:0 0 120px 40px rgba(255,200,100,.5)}
+.moon{width:96px;height:96px;top:11vh;left:12vw;background:radial-gradient(circle at 35% 35%,#fffdf5,#d9d4f5 70%);box-shadow:0 0 70px 18px rgba(190,180,255,.35);transform:translateY(-60vh)}
+body[data-mode=city] .sun{transform:translateY(90vh)}
+body[data-mode=city] .moon{transform:none}
+.cloud{position:fixed;z-index:-1;width:380px;height:120px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.8),transparent);filter:blur(8px);opacity:0;transition:opacity 1.4s;animation:drift linear infinite}
+body[data-wx=cloud] .cloud,body[data-wx=rain] .cloud,body[data-wx=storm] .cloud,body[data-wx=snow] .cloud,body[data-wx=fog] .cloud{opacity:1}
+body[data-wx=rain] .cloud,body[data-wx=storm] .cloud{background:radial-gradient(closest-side,rgba(40,50,80,.85),transparent)}
+.c1{top:4vh;animation-duration:80s}.c2{top:32vh;animation-duration:110s;animation-delay:-50s}.c3{top:64vh;animation-duration:95s;animation-delay:-20s}
+.wx{position:fixed;inset:0;z-index:-3;opacity:0;transition:opacity 1.4s}
+.w-hot{background:linear-gradient(#ff8a3d,#ffc46b 55%,#fff0b8)}
+.w-rain{background:linear-gradient(#2b3a55,#56688a 60%,#8c9db8)}
+.w-storm{background:linear-gradient(#10152a,#2b3350 60%,#4a546e)}
+.w-snow{background:linear-gradient(#9fbdd9,#dce9f5 60%,#fff)}
+.w-cloud{background:linear-gradient(#7d92ab,#b9c8d8 60%,#e6edf4)}
+.w-fog{background:linear-gradient(#aeb7c2,#d3d8de 60%,#eceff2)}
+body[data-wx=hot] .w-hot,body[data-wx=rain] .w-rain,body[data-wx=storm] .w-storm,body[data-wx=snow] .w-snow,body[data-wx=cloud] .w-cloud,body[data-wx=fog] .w-fog{opacity:1}
+body[data-wx=rain],body[data-wx=storm]{--fg:#eef3ff;--muted:#b4c2dc;--card:rgba(20,28,48,.55);--line:rgba(255,255,255,.18);--ac:#7cc4ff;--acfg:#06203a}
+body[data-wx=cloud],body[data-wx=fog]{--card:rgba(255,255,255,.5)}
+#fx{position:fixed;inset:0;z-index:-1;pointer-events:none}
+.flash{position:fixed;inset:0;z-index:-1;pointer-events:none;background:#fff;opacity:0}
+body[data-wx=storm] .flash{animation:flash 7s infinite}
+@keyframes flash{0%,88%,100%{opacity:0}90%{opacity:.55}92%{opacity:.05}94%{opacity:.4}97%{opacity:0}}
+.sun::before{content:"";position:absolute;inset:-90%;border-radius:50%;background:repeating-conic-gradient(rgba(255,215,120,.6) 0 3deg,transparent 3deg 12deg);-webkit-mask:radial-gradient(circle,transparent 22%,#000 27%,transparent 68%);mask:radial-gradient(circle,transparent 22%,#000 27%,transparent 68%);opacity:0;transition:opacity 1s;animation:spin 45s linear infinite}
+body[data-wx=clear] .sun::before,body[data-wx=hot] .sun::before{opacity:1}
+body[data-wx=hot] .sun{transform:scale(1.6);animation:pulse 3s ease-in-out infinite}
+body[data-wx=hot] .sun::before{animation-duration:20s}
+body[data-wx=rain] .sun,body[data-wx=storm] .sun,body[data-wx=snow] .sun,body[data-wx=fog] .sun{opacity:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{filter:brightness(1.2)}}
+@keyframes drift{from{left:-300px}to{left:110vw}}
+
+.card{width:min(700px,100%);padding:26px;border-radius:28px;background:var(--card);border:1px solid var(--line);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);box-shadow:0 30px 80px -30px rgba(10,20,60,.45);transition:background .8s;animation:rise .9s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(28px)}}
+.tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;padding:5px;border-radius:999px;border:1px solid var(--line);margin-bottom:26px}
+.pill{position:absolute;top:5px;bottom:5px;left:5px;width:calc(50% - 5px);border-radius:999px;background:var(--ac);transition:transform .6s cubic-bezier(.5,1.5,.45,1),background .8s}
+body[data-mode=city] .pill{transform:translateX(100%)}
+button{font:600 15px "DM Sans",sans-serif;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ac);outline-offset:3px}
+.tabs button{position:relative;padding:12px;border:0;background:none;color:var(--muted);transition:color .4s}
+.tabs button.on{color:var(--acfg)}
+h1{font:600 clamp(32px,8vw,48px)/1.1 Fraunces,serif;letter-spacing:-.02em;margin-bottom:20px;overflow-wrap:anywhere}
+h1 small{display:block;font-size:.5em;color:var(--muted);margin-bottom:4px}
+h1 .ph{opacity:.28}
+.row{display:flex;gap:8px;padding:6px;border-radius:999px;border:1px solid var(--line);transition:box-shadow .4s}
+.row:focus-within{box-shadow:0 0 0 3px var(--ac)}
+input{flex:1;min-width:0;border:0;background:none;padding:0 16px;font:500 17px "DM Sans",sans-serif;color:var(--fg);outline:none}
+input::placeholder{color:var(--muted)}
+.go{padding:13px 22px;border:0;border-radius:999px;background:var(--ac);color:var(--acfg);white-space:nowrap;transition:transform .25s cubic-bezier(.3,1.6,.5,1),background .8s}
+.go:hover{transform:scale(1.05)}.go:disabled{opacity:.6;cursor:wait}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chips button{padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--muted);font-size:13px;font-weight:500;transition:.3s}
+.chips button:hover{background:var(--ac);color:var(--acfg);transform:translateY(-2px)}
+.fold{display:grid;grid-template-rows:0fr;transition:grid-template-rows .7s cubic-bezier(.2,.8,.2,1)}
+.fold.open{grid-template-rows:1fr}.fold>div{overflow:hidden}
+.out{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);line-height:1.65}
+.out>*{animation:fade .7s both}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}}
+.out p{margin-bottom:12px;max-width:68ch}
+.out h3{font:600 24px/1.2 Fraunces,serif;margin:4px 0 14px}
+.out em{color:var(--muted)}.out ul{padding-left:20px;margin-bottom:12px}
+.out hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+.tw{overflow-x:auto;margin:4px 0 18px;border:1px solid var(--line);border-radius:16px}
+.out table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.55}
+.out th{text-align:left;padding:11px 14px;background:rgba(255,255,255,.2)}
+.out td{padding:12px 14px;border-top:1px solid var(--line);vertical-align:top}
+.out td:first-child{min-width:112px}
+.dots{display:flex;gap:7px}.dots i{width:10px;height:10px;border-radius:50%;background:var(--ac);animation:bounce 1s ease-in-out infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes bounce{50%{transform:translateY(-9px);opacity:.5}}
+.dev-btn{margin-top:22px;width:100%;display:flex;align-items:center;gap:12px;padding:10px 14px 10px 10px;border:1px solid var(--line);border-radius:20px;background:none;color:var(--fg);font-weight:500;font-size:14px;text-align:left}
+.avatar{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--acfg);background:linear-gradient(135deg,var(--ac),#ffe2ad);font-size:14px}
+.dev-btn small{display:block;color:var(--muted);font-size:12.5px;font-weight:400}
+.dev-btn svg{margin-left:auto;transition:transform .5s cubic-bezier(.5,1.5,.45,1)}
+.dev-btn[aria-expanded=true] svg{transform:rotate(180deg)}
+.dev{padding:16px 6px 2px;font-size:14.5px;line-height:1.6;color:var(--muted)}
+.dev b{color:var(--fg)}
+.tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.tags span{padding:5px 12px;border-radius:999px;border:1px solid var(--line);font-size:12.5px;color:var(--fg)}
+@media(prefers-reduced-motion:reduce){*,::before,::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body data-mode="weather">
+<div class="sky day"></div><div class="sky night"></div>
+<div class="orb sun"></div><div class="orb moon"></div>
+<div class="wx w-hot"></div><div class="wx w-rain"></div><div class="wx w-storm"></div><div class="wx w-snow"></div><div class="wx w-cloud"></div><div class="wx w-fog"></div>
+<div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+<div class="flash"></div><canvas id="fx"></canvas>
+
+<main class="card">
+  <div class="tabs">
+    <div class="pill"></div>
+    <button id="weather" class="on">Weather</button>
+    <button id="city">Know a city</button>
+  </div>
+  <h1 id="title"></h1>
+  <div class="row">
+    <input id="input" autocomplete="off" aria-label="City name">
+    <button class="go" id="go"></button>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="fold" id="fold"><div><div class="out" id="out"></div></div></div>
+
+  <button class="dev-btn" id="devBtn" aria-expanded="false">
+    <span class="avatar">AG</span>
+    <span>Akash Goswami<small>About the developer</small></span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <div class="fold" id="devFold"><div><div class="dev">
+    <p><b>Akash Goswami</b> is a final-year BE student specialising in AI and machine learning.</p>
+    <p style="margin-top:8px">A Groq-hosted model (gpt-oss-20b) uses LangChain tool calling to pick a weather tool or a city-details tool, then writes the answer.</p>
+    <div class="tags"><span>Python</span><span>LangChain</span><span>Groq</span><span>HTML and CSS</span></div>
+  </div></div></div>
+</main>
+
+<script>
+const API = "/api/agent";
+const COPY = {
+  weather: ["Weather of", "your city", "Type a city, like Raipur", "Check weather"],
+  city:    ["All about", "any city", "Type a city, like Kyoto", "Explore city"]
+};
+const CITIES = ["Deoria", "Gorakhpur", "Raipur", "Varanasi", "Jaipur", "Mumbai", "Tokyo"];
+const $ = id => document.getElementById(id);
+let mode = "weather";
+
+function draw() {
+  const [lead, empty] = COPY[mode], v = $("input").value.trim();
+  $("title").innerHTML = `<small>${lead}</small><span class="${v ? "" : "ph"}"></span>`;
+  $("title").lastChild.textContent = v || empty;
+}
+
+const cv = $("fx"), cx = cv.getContext("2d");
+let raf;
+const fit = () => { cv.width = innerWidth; cv.height = innerHeight; };
+addEventListener("resize", fit); fit();
+
+function particles(k) {
+  cancelAnimationFrame(raf);
+  cx.clearRect(0, 0, cv.width, cv.height);
+  if (!["rain", "storm", "snow"].includes(k) || matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+  const ps = Array.from({ length: k === "snow" ? 130 : 220 }, () => ({ x: Math.random() * cv.width, y: Math.random() * cv.height, s: Math.random() }));
+  (function loop() {
+    cx.clearRect(0, 0, cv.width, cv.height);
+    cx.strokeStyle = "rgba(190,215,255,.55)"; cx.fillStyle = "rgba(255,255,255,.9)";
+    for (const p of ps) {
+      if (k === "snow") { p.y += .6 + p.s * 1.4; p.x += Math.sin(p.y / 40 + p.s * 6) * .5; cx.beginPath(); cx.arc(p.x, p.y, 1 + p.s * 2.5, 0, 7); cx.fill(); }
+      else { const v = 14 + p.s * 10; p.y += v; p.x -= 2; cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(p.x + 2, p.y - v * 1.2); cx.stroke(); }
+      if (p.y > cv.height) { p.y = -20; p.x = Math.random() * cv.width; }
+      if (p.x < 0) p.x = cv.width;
+    }
+    raf = requestAnimationFrame(loop);
+  })();
+}
+
+function scene(k) {
+  if (k) document.body.dataset.wx = k; else delete document.body.dataset.wx;
+  particles(k);
+}
+
+function condition(text) {
+  const t = text.toLowerCase(), n = re => (t.match(re) || []).length;
+  const m = t.match(/(-?\d+(?:\.\d+)?)\s*°\s*c/), temp = m ? +m[1] : null;
+  const s = {
+    storm: n(/thunder|storm|lightning/g) * 2, snow: n(/snow|sleet|blizzard|frost|freezing/g) * 2,
+    rain: n(/rain|shower|drizzle|monsoon/g), fog: n(/fog|mist|haze|smog/g),
+    cloud: n(/cloud|overcast/g), clear: n(/sunny|clear/g), hot: n(/\bhot\b|heat|scorching|sweltering/g)
+  };
+  if (temp !== null && temp >= 36) s.hot += 3;
+  if (temp !== null && temp <= 5) s.snow += 2;
+  const [k, v] = Object.entries(s).sort((a, b) => b[1] - a[1])[0];
+  return v > 0 ? k : "clear";
+}
+
+function setMode(m) {
+  scene("");
+  mode = m;
+  document.body.dataset.mode = m;
+  $("weather").classList.toggle("on", m === "weather");
+  $("city").classList.toggle("on", m === "city");
+  $("input").placeholder = COPY[m][2];
+  $("go").textContent = COPY[m][3];
+  $("fold").classList.remove("open");
+  draw();
+}
+
+function md(src) {
+  const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const inline = s => esc(s).replace(/&lt;br\s*\/?&gt;/gi, "<br>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[\s(>])\*(?!\s)(.+?)\*(?=[\s).,;:<]|$)/g, "$1<em>$2</em>");
+  const item = l => /^\s*([-*•]|\d+\.)\s+/.test(l);
+  const L = src.replace(/\r/g, "").split("\n");
+  let html = "", i = 0;
+  while (i < L.length) {
+    const l = L[i].trim();
+    if (!l) { i++; continue; }
+    if (l[0] === "|") {
+      const rows = [];
+      while (i < L.length && L[i].trim()[0] === "|") rows.push(L[i++].trim());
+      const cells = r => r.replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+      const b = rows.filter(r => !/^\|[\s:|-]+\|?$/.test(r));
+      html += `<div class="tw"><table><thead><tr>${cells(b[0]).map(c => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>`
+        + b.slice(1).map(r => `<tr>${cells(r).map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("") + `</tbody></table></div>`;
+    } else if (/^(-{3,}|\*{3,})$/.test(l)) { html += "<hr>"; i++; }
+    else if (/^#{1,4}\s/.test(l) || /^\*\*[^*]+\*\*$/.test(l)) { html += `<h3>${inline(l.replace(/^#+\s*/, "").replace(/^\*\*|\*\*$/g, ""))}</h3>`; i++; }
+    else if (item(l)) {
+      const items = [];
+      while (i < L.length && item(L[i])) items.push(L[i++].trim().replace(/^([-*•]|\d+\.)\s+/, ""));
+      html += `<ul>${items.map(x => `<li>${inline(x)}</li>`).join("")}</ul>`;
+    } else {
+      const p = [l]; i++;
+      while (i < L.length && L[i].trim() && !/^(\||#|-{3,})/.test(L[i].trim()) && !item(L[i])) p.push(L[i++].trim());
+      html += `<p>${inline(p.join(" "))}</p>`;
+    }
+  }
+  return html;
+}
+
+function show(html) {
+  $("out").innerHTML = html;
+  [...$("out").children].forEach((el, i) => el.style.animationDelay = i * .1 + "s");
+}
+
+async function ask() {
+  const city = $("input").value.trim();
+  if (!city) return $("input").focus();
+  $("go").disabled = true;
+  scene("");
+  show(`<div class="dots"><i></i><i></i><i></i></div>`);
+  $("fold").classList.add("open");
+  try {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ city, mode }) });
+    if (!r.ok) throw new Error("Server error " + r.status);
+    const answer = String((await r.json()).answer);
+    show(md(answer));
+    if (mode === "weather") scene(condition(answer));
+  } catch (e) {
+    show(`<p>Could not get an answer (${e.message}). Check that the server is running.</p>`);
+  }
+  $("go").disabled = false;
+}
+
+$("chips").innerHTML = CITIES.map(c => `<button>${c}</button>`).join("");
+$("chips").onclick = e => { if (e.target.matches("button")) { $("input").value = e.target.textContent; draw(); ask(); } };
+$("weather").onclick = () => setMode("weather");
+$("city").onclick = () => setMode("city");
+$("input").oninput = draw;
+$("input").addEventListener("keydown", e => { if (e.key === "Enter") ask(); });
+$("go").onclick = ask;
+$("devBtn").onclick = e => {
+  const open = e.currentTarget.getAttribute("aria-expanded") !== "true";
+  e.currentTarget.setAttribute("aria-expanded", open);
+  $("devFold").classList.toggle("open", open);
+};
+setMode("weather");
+</script>
+</body>
+</html>
